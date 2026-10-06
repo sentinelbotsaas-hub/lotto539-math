@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>539 包牌機率與期望值計算</title>
+<meta name="description" content="今彩539 連碰、立柱組數、至少中一組的機率與期望值。公式公開、零依賴。">
+<style>
+  :root { --bg:#fff; --fg:#1d2330; --muted:#5d6675; --line:#d8dde5; --accent:#1f5fa8; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14181f; --fg:#e6e9ee; --muted:#9aa3b1; --line:#2c3340; --accent:#7fb0e8; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 -apple-system,"PingFang TC","Microsoft JhengHei",sans-serif; }
+  main { max-width:640px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p.lead { color:var(--muted); margin:0 0 20px; }
+  fieldset { border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:0 0 14px; }
+  label { display:block; margin:6px 0; }
+  input, select { font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); width:7em; }
+  table { width:100%; border-collapse:collapse; margin-top:8px; }
+  td { padding:8px 4px; border-bottom:1px solid var(--line); }
+  td:last-child { text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  a { color:var(--accent); }
+  footer { margin-top:28px; font-size:14px; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>539 包牌機率與期望值計算</h1>
+  <p class="lead">包牌只放大成本，不改變每一組的期望值。輸入你的包法，看實際數字。</p>
+
+  <fieldset>
+    <label>星數 <select id="k"><option value="2">二星</option><option value="3">三星</option><option value="4">四星</option></select></label>
+    <label>包法 <select id="mode"><option value="combo">連碰（全車）</option><option value="pillar">立柱（膽拖）</option></select></label>
+    <label id="dRow" hidden>膽碼數 <input id="d" type="number" min="1" max="3" value="1"></label>
+    <label><span id="nLabel">選幾碼</span> <input id="n" type="number" min="1" max="39" value="8"></label>
+    <label>每組金額（元） <input id="unit" type="number" min="1" value="50"></label>
+    <label>賠率（倍） <input id="odds" type="number" min="1" value="53"></label>
+  </fieldset>
+
+  <table aria-live="polite">
+    <tr><td>組數</td><td id="rCount"></td></tr>
+    <tr><td>總成本</td><td id="rCost"></td></tr>
+    <tr><td>單組全中機率</td><td id="rHit"></td></tr>
+    <tr><td>至少中一組的機率</td><td id="rAny"></td></tr>
+    <tr><td>每投 100 元平均拿回</td><td id="rEv"></td></tr>
+  </table>
+
+  <footer>
+    公式與原始碼：<a href="https://github.com/sentinelbotsaas-hub/lotto539-math">GitHub</a>。
+    完整推導與互動版計算機見 <a href="https://ratedtw.com/tools/539-package-calculator/">台灣評鑑網 539 包牌計算機</a>。
+    民間 539 在台灣屬非法賭博，本頁只做數學試算。
+  </footer>
+</main>
+<script type="module">
+import * as m from "./lotto539.mjs";
+const $ = (id) => document.getElementById(id);
+const defaultOdds = { 2: 53, 3: 580, 4: 7500 };
+const pct = (x) => (x * 100 < 0.01 ? "<0.01" : (x * 100).toFixed(2)) + "%";
+const fmt = (x) => x.toLocaleString("zh-TW");
+
+function render() {
+  const k = +$("k").value, mode = $("mode").value;
+  const n = Math.max(0, Math.min(39, +$("n").value || 0));
+  const d = Math.max(1, +$("d").value || 1);
+  const unit = Math.max(1, +$("unit").value || 1), odds = Math.max(1, +$("odds").value || 1);
+  $("dRow").hidden = mode !== "pillar";
+  $("nLabel").textContent = mode === "pillar" ? "拖碼數" : "選幾碼";
+  const count = mode === "pillar" ? m.pillarCount(d, n, k) : m.comboCount(n, k);
+  const any = mode === "pillar" ? m.pAtLeastOnePillar(d, n, k) : m.pAtLeastOneCombo(n, k);
+  $("rCount").textContent = fmt(count) + " 組";
+  $("rCost").textContent = fmt(count * unit) + " 元";
+  $("rHit").textContent = "1 / " + (1 / m.pHit(k)).toFixed(1);
+  $("rAny").textContent = count ? pct(any) : "—";
+  $("rEv").textContent = (100 * (1 + m.evPerUnit(odds, k))).toFixed(1) + " 元";
+}
+$("k").addEventListener("change", () => { $("odds").value = defaultOdds[$("k").value]; render(); });
+document.querySelectorAll("input, select").forEach((el) => el.addEventListener("input", render));
+render();
+</script>
+</body>
+</html>
